@@ -16,7 +16,9 @@
 #include <cstdlib>
 #include <ctime>
 #include <algorithm>
-#include <windows.h>  // 用于 Log 函数
+#include <windows.h>
+#include <tchar.h>
+#include <cstdarg>
 
 // 初始化随机数生成器（在程序开始时调用一次）
 static bool randomInitialized = false;
@@ -356,12 +358,14 @@ void FormatString(TCHAR* buffer, int bufferSize, const TCHAR* format, ...)
 {
     va_list args;
     va_start(args, format);
-    
-    // 使用 vswprintf_s 进行格式化（安全版本）
-    vswprintf_s(buffer, bufferSize, format, args);
-    
+
+    // Cross-compiler friendly formatting.
+    _vsntprintf(buffer, bufferSize - 1, format, args);
+    buffer[bufferSize - 1] = 0;
+
     va_end(args);
 }
+
 
 /* ============================================================================
  * 使用示例和测试

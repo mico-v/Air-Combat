@@ -140,6 +140,9 @@ void KeyUp(HWND hWnd, WPARAM wParam, LPARAM lParam);
  */
 bool GetKeyDown(int keycode);
 
+// Clear all key states (recommended to call from WM_KILLFOCUS).
+void ClearKeyStates();
+
 /* ============================================================================
  * 虚拟键码参考
  * ============================================================================
