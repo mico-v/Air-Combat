@@ -1,12 +1,8 @@
 #pragma once
 
-#include <windows.h>
+struct SDL_Renderer;
 
-// Game lifecycle entry points called from Win32 WndProc.
-void GameInit(HWND hWnd, WPARAM wParam, LPARAM lParam);
-void GameLoop(HWND hWnd);
-void GameRender(HWND hWnd, WPARAM wParam, LPARAM lParam);
-
-// Time helpers.
-double GetGameTime();
-double GetDeltaTime();
+void GameInit();
+void GameUpdate(double deltaTime);
+void GameRender(SDL_Renderer* renderer);
+void GameShutdown();

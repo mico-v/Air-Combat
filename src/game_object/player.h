@@ -2,7 +2,7 @@
 
 #include "../util/type.h"
 
-#include <windows.h>
+struct SDL_Renderer;
 
 struct Player
 {
@@ -15,5 +15,5 @@ struct Player
 void CreatePlayer();
 Player* GetPlayer();
 void UpdatePlayer(double deltaTime);
-void RenderPlayer(HDC hdc_memBuffer, HDC hdc_loadBmp);
+void RenderPlayer(SDL_Renderer* renderer);
 void DestroyPlayer();

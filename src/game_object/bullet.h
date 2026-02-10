@@ -2,8 +2,9 @@
 
 #include "../util/type.h"
 
-#include <windows.h>
 #include <vector>
+
+struct SDL_Renderer;
 
 struct Bullet
 {
@@ -15,7 +16,6 @@ struct Bullet
 
 void CreateBullet(double x, double y, int damage, double speed);
 void UpdateBullets(double deltaTime);
-void RenderBullets(HDC hdc_memBuffer, HDC hdc_loadBmp);
-void DestroyBullet(Bullet* bullet);
-void DestroyBullets();
-std::vector<Bullet*> GetBullets();
+void RenderBullets(SDL_Renderer* renderer);
+void ClearBullets();
+std::vector<Bullet>& GetBullets();

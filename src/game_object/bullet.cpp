@@ -2,44 +2,34 @@
 
 #include "player.h"
 
+#include "../input/input.h"
 #include "../util/config.h"
-#include "../util/keyboard.h"
 
-#include <algorithm>
+#include <SDL.h>
+#include <cmath>
 
 namespace
 {
-    std::vector<Bullet*> g_bullets;
+    std::vector<Bullet> g_bullets;
 }
 
 void CreateBullet(double x, double y, int damage, double speed)
 {
-    Bullet* b = new Bullet();
-    b->position = {x, y};
-    b->radius = BULLET_RADIUS;
-    b->damage = damage;
-    b->speed = speed;
+    Bullet b = {};
+    b.position = {x, y};
+    b.radius = BULLET_RADIUS;
+    b.damage = damage;
+    b.speed = speed;
     g_bullets.push_back(b);
 }
 
-std::vector<Bullet*> GetBullets()
+std::vector<Bullet>& GetBullets()
 {
     return g_bullets;
 }
 
-void DestroyBullet(Bullet* bullet)
+void ClearBullets()
 {
-    auto it = std::find(g_bullets.begin(), g_bullets.end(), bullet);
-    if (it == g_bullets.end())
-        return;
-    delete *it;
-    g_bullets.erase(it);
-}
-
-void DestroyBullets()
-{
-    for (Bullet* b : g_bullets)
-        delete b;
     g_bullets.clear();
 }
 
@@ -48,7 +38,7 @@ void UpdateBullets(double deltaTime)
     Player* player = GetPlayer();
     if (player)
     {
-        if (GetKeyDown(VK_SPACE) && player->attributes.bulletCd <= 0.0)
+        if (IsKeyDown(SDL_SCANCODE_SPACE) && player->attributes.bulletCd <= 0.0)
         {
             CreateBullet(
                 player->position.x + player->width / 2.0,
@@ -61,36 +51,38 @@ void UpdateBullets(double deltaTime)
 
     for (size_t i = 0; i < g_bullets.size();)
     {
-        Bullet* b = g_bullets[i];
-        b->position.y -= b->speed * deltaTime;
-        if (b->position.y + b->radius < 0)
+        Bullet& b = g_bullets[i];
+        b.position.y -= b.speed * deltaTime;
+        if (b.position.y + b.radius < 0)
         {
-            delete b;
-            g_bullets.erase(g_bullets.begin() + (int)i);
+            g_bullets.erase(g_bullets.begin() + static_cast<int>(i));
             continue;
         }
         i++;
     }
 }
 
-void RenderBullets(HDC hdc_memBuffer, HDC hdc_loadBmp)
+static void DrawFilledCircle(SDL_Renderer* renderer, int cx, int cy, int radius)
 {
-    (void)hdc_loadBmp;
-    HBRUSH brush = CreateSolidBrush(COLOR_RED);
-    HGDIOBJ oldBrush = SelectObject(hdc_memBuffer, brush);
-    HGDIOBJ oldPen = SelectObject(hdc_memBuffer, GetStockObject(NULL_PEN));
-
-    for (Bullet* b : g_bullets)
+    for (int dy = -radius; dy <= radius; ++dy)
     {
-        Ellipse(
-            hdc_memBuffer,
-            (int)(b->position.x - b->radius),
-            (int)(b->position.y - b->radius),
-            (int)(b->position.x + b->radius),
-            (int)(b->position.y + b->radius));
+        int dx = static_cast<int>(std::sqrt(radius * radius - dy * dy));
+        SDL_RenderDrawLine(renderer, cx - dx, cy + dy, cx + dx, cy + dy);
     }
+}
 
-    SelectObject(hdc_memBuffer, oldPen);
-    SelectObject(hdc_memBuffer, oldBrush);
-    DeleteObject(brush);
+void RenderBullets(SDL_Renderer* renderer)
+{
+    if (!renderer)
+        return;
+
+    SDL_SetRenderDrawColor(renderer, COLOR_RED.r, COLOR_RED.g, COLOR_RED.b, 255);
+    for (const Bullet& b : g_bullets)
+    {
+        DrawFilledCircle(
+            renderer,
+            static_cast<int>(b.position.x),
+            static_cast<int>(b.position.y),
+            static_cast<int>(b.radius));
+    }
 }

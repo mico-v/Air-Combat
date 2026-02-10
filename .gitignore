@@ -1,0 +1,13 @@
+/build/
+/.cache/
+/.vscode/
+compile_commands.json
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+*.user
+*.suo
+*.log
+*.db
+.DS_Store

@@ -1,84 +1,79 @@
 #include "player.h"
 
+#include "../input/input.h"
 #include "../util/config.h"
-#include "../util/keyboard.h"
 #include "../util/util.h"
+
+#include <SDL.h>
 
 namespace
 {
-    Player* g_player = nullptr;
+    Player g_player = {};
+    bool g_hasPlayer = false;
 }
 
 void CreatePlayer()
 {
-    DestroyPlayer();
-
-    g_player = new Player();
-    g_player->position.x = (GAME_WIDTH - PLAYER_WIDTH) / 2.0;
-    g_player->position.y = GAME_HEIGHT - PLAYER_HEIGHT - 20.0;
-    g_player->width = PLAYER_WIDTH;
-    g_player->height = PLAYER_HEIGHT;
-    g_player->attributes.health = PLAYER_INITIAL_HEALTH;
-    g_player->attributes.score = 0;
-    g_player->attributes.speed = PLAYER_SPEED;
-    g_player->attributes.maxBulletCd = PLAYER_BULLET_COOLDOWN;
-    g_player->attributes.bulletCd = 0.0;
+    g_hasPlayer = true;
+    g_player.position.x = (GAME_WIDTH - PLAYER_WIDTH) / 2.0;
+    g_player.position.y = GAME_HEIGHT - PLAYER_HEIGHT - 20.0;
+    g_player.width = PLAYER_WIDTH;
+    g_player.height = PLAYER_HEIGHT;
+    g_player.attributes.health = PLAYER_INITIAL_HEALTH;
+    g_player.attributes.score = 0;
+    g_player.attributes.speed = PLAYER_SPEED;
+    g_player.attributes.maxBulletCd = PLAYER_BULLET_COOLDOWN;
+    g_player.attributes.bulletCd = 0.0;
 }
 
 Player* GetPlayer()
 {
-    return g_player;
+    return g_hasPlayer ? &g_player : nullptr;
 }
 
 void UpdatePlayer(double deltaTime)
 {
-    if (!g_player)
+    if (!g_hasPlayer)
         return;
 
-    Vector2 direction = {0, 0};
-    if (GetKeyDown('W') || GetKeyDown(VK_UP))
-        direction.y -= 1;
-    if (GetKeyDown('S') || GetKeyDown(VK_DOWN))
-        direction.y += 1;
-    if (GetKeyDown('A') || GetKeyDown(VK_LEFT))
-        direction.x -= 1;
-    if (GetKeyDown('D') || GetKeyDown(VK_RIGHT))
-        direction.x += 1;
+    Vector2 direction = {0.0, 0.0};
+    if (IsKeyDown(SDL_SCANCODE_W) || IsKeyDown(SDL_SCANCODE_UP))
+        direction.y -= 1.0;
+    if (IsKeyDown(SDL_SCANCODE_S) || IsKeyDown(SDL_SCANCODE_DOWN))
+        direction.y += 1.0;
+    if (IsKeyDown(SDL_SCANCODE_A) || IsKeyDown(SDL_SCANCODE_LEFT))
+        direction.x -= 1.0;
+    if (IsKeyDown(SDL_SCANCODE_D) || IsKeyDown(SDL_SCANCODE_RIGHT))
+        direction.x += 1.0;
 
     direction = Normalize(direction);
 
-    g_player->position.x += direction.x * g_player->attributes.speed * deltaTime;
-    g_player->position.y += direction.y * g_player->attributes.speed * deltaTime;
+    g_player.position.x += direction.x * g_player.attributes.speed * deltaTime;
+    g_player.position.y += direction.y * g_player.attributes.speed * deltaTime;
 
-    g_player->position.x = Clamp(g_player->position.x, 0, GAME_WIDTH - g_player->width);
-    g_player->position.y = Clamp(g_player->position.y, 0, GAME_HEIGHT - g_player->height);
+    g_player.position.x = Clamp(g_player.position.x, 0.0, GAME_WIDTH - g_player.width);
+    g_player.position.y = Clamp(g_player.position.y, 0.0, GAME_HEIGHT - g_player.height);
 
-    if (g_player->attributes.bulletCd > 0.0)
-        g_player->attributes.bulletCd -= deltaTime;
+    if (g_player.attributes.bulletCd > 0.0)
+        g_player.attributes.bulletCd -= deltaTime;
 }
 
-void RenderPlayer(HDC hdc_memBuffer, HDC hdc_loadBmp)
+void RenderPlayer(SDL_Renderer* renderer)
 {
-    (void)hdc_loadBmp;
-    if (!g_player)
+    if (!g_hasPlayer || !renderer)
         return;
 
-    RECT r;
-    r.left = (LONG)g_player->position.x;
-    r.top = (LONG)g_player->position.y;
-    r.right = (LONG)(g_player->position.x + g_player->width);
-    r.bottom = (LONG)(g_player->position.y + g_player->height);
+    SDL_Rect r;
+    r.x = static_cast<int>(g_player.position.x);
+    r.y = static_cast<int>(g_player.position.y);
+    r.w = static_cast<int>(g_player.width);
+    r.h = static_cast<int>(g_player.height);
 
-    HBRUSH brush = CreateSolidBrush(COLOR_BLUE);
-    FillRect(hdc_memBuffer, &r, brush);
-    DeleteObject(brush);
+    SDL_SetRenderDrawColor(renderer, COLOR_BLUE.r, COLOR_BLUE.g, COLOR_BLUE.b, 255);
+    SDL_RenderFillRect(renderer, &r);
 }
 
 void DestroyPlayer()
 {
-    if (g_player)
-    {
-        delete g_player;
-        g_player = nullptr;
-    }
+    g_hasPlayer = false;
 }

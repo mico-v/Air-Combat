@@ -1,28 +1,27 @@
 #include "enemy.h"
 
-#include "../core/core.h"
 #include "../util/config.h"
 #include "../util/util.h"
 
-#include <algorithm>
+#include <SDL.h>
 
 namespace
 {
-    std::vector<Enemy*> g_enemies;
-    double g_lastSpawnTime = 0.0;
+    std::vector<Enemy> g_enemies;
+    double g_spawnTimer = 0.0;
 }
 
 void CreateEnemy(double x, double y)
 {
-    Enemy* e = new Enemy();
-    e->position = {x, y};
-    e->width = ENEMY_WIDTH;
-    e->height = ENEMY_HEIGHT;
-    e->attributes.health = ENEMY_HEALTH;
-    e->attributes.score = ENEMY_SCORE;
-    e->attributes.speed = ENEMY_SPEED;
-    e->attributes.maxBulletCd = 0.0;
-    e->attributes.bulletCd = 0.0;
+    Enemy e = {};
+    e.position = {x, y};
+    e.width = ENEMY_WIDTH;
+    e.height = ENEMY_HEIGHT;
+    e.attributes.health = ENEMY_HEALTH;
+    e.attributes.score = ENEMY_SCORE;
+    e.attributes.speed = ENEMY_SPEED;
+    e.attributes.maxBulletCd = 0.0;
+    e.attributes.bulletCd = 0.0;
 
     g_enemies.push_back(e);
 }
@@ -30,68 +29,57 @@ void CreateEnemy(double x, double y)
 void CreateRandomEnemy()
 {
     CreateEnemy(
-        GetRandomDouble(30, GAME_WIDTH - ENEMY_WIDTH - 30),
-        -100);
+        GetRandomDouble(30.0, GAME_WIDTH - ENEMY_WIDTH - 30.0),
+        -100.0);
 }
 
-std::vector<Enemy*> GetEnemies()
+std::vector<Enemy>& GetEnemies()
 {
     return g_enemies;
 }
 
-void DestroyEnemy(Enemy* enemy)
+void ClearEnemies()
 {
-    auto it = std::find(g_enemies.begin(), g_enemies.end(), enemy);
-    if (it == g_enemies.end())
-        return;
-    delete *it;
-    g_enemies.erase(it);
-}
-
-void DestroyEnemies()
-{
-    for (Enemy* e : g_enemies)
-        delete e;
     g_enemies.clear();
+    g_spawnTimer = 0.0;
 }
 
 void UpdateEnemies(double deltaTime)
 {
-    const double now = GetGameTime();
-    if (now - g_lastSpawnTime > ENEMY_SPAWN_INTERVAL)
+    g_spawnTimer += deltaTime;
+    while (g_spawnTimer >= ENEMY_SPAWN_INTERVAL)
     {
         CreateRandomEnemy();
-        g_lastSpawnTime = now;
+        g_spawnTimer -= ENEMY_SPAWN_INTERVAL;
     }
 
     for (size_t i = 0; i < g_enemies.size();)
     {
-        Enemy* e = g_enemies[i];
-        e->position.y += e->attributes.speed * deltaTime;
+        Enemy& e = g_enemies[i];
+        e.position.y += e.attributes.speed * deltaTime;
 
-        if (e->position.y > GAME_HEIGHT + 50)
+        if (e.position.y > GAME_HEIGHT + 50.0)
         {
-            delete e;
-            g_enemies.erase(g_enemies.begin() + (int)i);
+            g_enemies.erase(g_enemies.begin() + static_cast<int>(i));
             continue;
         }
         i++;
     }
 }
 
-void RenderEnemies(HDC hdc_memBuffer, HDC hdc_loadBmp)
+void RenderEnemies(SDL_Renderer* renderer)
 {
-    (void)hdc_loadBmp;
-    for (Enemy* e : g_enemies)
-    {
-        RECT r;
-        r.left = (LONG)e->position.x;
-        r.top = (LONG)e->position.y;
-        r.right = (LONG)(e->position.x + e->width);
-        r.bottom = (LONG)(e->position.y + e->height);
+    if (!renderer)
+        return;
 
-        HBRUSH brush = CreateSolidBrush(RGB(220, 60, 60));
-        FillRect(hdc_memBuffer, &r, brush);
-        DeleteObject(brush);
+    SDL_SetRenderDrawColor(renderer, 220, 60, 60, 255);
+    for (const Enemy& e : g_enemies)
+    {
+        SDL_Rect r;
+        r.x = static_cast<int>(e.position.x);
+        r.y = static_cast<int>(e.position.y);
+        r.w = static_cast<int>(e.width);
+        r.h = static_cast<int>(e.height);
+        SDL_RenderFillRect(renderer, &r);
     }
 }

@@ -1,102 +1,120 @@
 #include "core.h"
 
-#include "../resource/resource.h"
-#include "../scene/scene.h"
+#include "../game_object/player.h"
+#include "../game_object/enemy.h"
+#include "../game_object/bullet.h"
 #include "../util/config.h"
-#include "info.h"
+#include "../util/util.h"
 
-#include <windows.h>
+#include <SDL.h>
 
 namespace
 {
-    double g_gameTimeSeconds = 0.0;
-    double g_deltaTimeSeconds = 0.0;
-
-    LARGE_INTEGER g_qpcFreq = {};
-    LARGE_INTEGER g_lastCounter = {};
-}
-
-static void UpdateTime()
-{
-    LARGE_INTEGER now = {};
-    QueryPerformanceCounter(&now);
-
-    if (g_qpcFreq.QuadPart == 0)
+    void ResetGame()
     {
-        QueryPerformanceFrequency(&g_qpcFreq);
-        g_lastCounter = now;
-        g_gameTimeSeconds = 0.0;
-        g_deltaTimeSeconds = 0.0;
-        return;
+        CreatePlayer();
+        ClearEnemies();
+        ClearBullets();
     }
 
-    const LONGLONG deltaTicks = now.QuadPart - g_lastCounter.QuadPart;
-    g_lastCounter = now;
+    void CheckCollision_Player_Enemies()
+    {
+        Player* player = GetPlayer();
+        if (!player)
+            return;
 
-    g_deltaTimeSeconds = static_cast<double>(deltaTicks) / static_cast<double>(g_qpcFreq.QuadPart);
-    if (g_deltaTimeSeconds < 0.0)
-        g_deltaTimeSeconds = 0.0;
+        Rect playerRect = CreateRect(player->position, player->width, player->height);
+        auto& enemies = GetEnemies();
 
-    g_gameTimeSeconds += g_deltaTimeSeconds;
+        for (size_t i = 0; i < enemies.size();)
+        {
+            Rect enemyRect = CreateRect(enemies[i].position, enemies[i].width, enemies[i].height);
+            if (IsRectRectCollision(playerRect, enemyRect))
+            {
+                player->attributes.health -= 1;
+                player->attributes.score += enemies[i].attributes.score;
+                enemies.erase(enemies.begin() + static_cast<int>(i));
+
+                if (player->attributes.health <= 0)
+                {
+                    ResetGame();
+                    return;
+                }
+                continue;
+            }
+            i++;
+        }
+    }
+
+    void CheckCollision_Bullets_Enemies()
+    {
+        Player* player = GetPlayer();
+        if (!player)
+            return;
+
+        auto& bullets = GetBullets();
+        auto& enemies = GetEnemies();
+
+        for (size_t bi = 0; bi < bullets.size();)
+        {
+            Circle bulletCircle = CreateCircle(bullets[bi].position, bullets[bi].radius);
+            bool bulletDestroyed = false;
+
+            for (size_t ei = 0; ei < enemies.size(); ++ei)
+            {
+                Rect enemyRect = CreateRect(enemies[ei].position, enemies[ei].width, enemies[ei].height);
+                if (!IsRectCircleCollision(enemyRect, bulletCircle))
+                    continue;
+
+                enemies[ei].attributes.health -= bullets[bi].damage;
+                if (enemies[ei].attributes.health <= 0)
+                {
+                    player->attributes.score += enemies[ei].attributes.score;
+                    enemies.erase(enemies.begin() + static_cast<int>(ei));
+                }
+
+                bullets.erase(bullets.begin() + static_cast<int>(bi));
+                bulletDestroyed = true;
+                break;
+            }
+
+            if (!bulletDestroyed)
+                bi++;
+        }
+    }
 }
 
-double GetGameTime()
+void GameInit()
 {
-    return g_gameTimeSeconds;
+    ResetGame();
 }
 
-double GetDeltaTime()
+void GameUpdate(double deltaTime)
 {
-    return g_deltaTimeSeconds;
+    UpdatePlayer(deltaTime);
+    UpdateEnemies(deltaTime);
+    UpdateBullets(deltaTime);
+
+    CheckCollision_Player_Enemies();
+    CheckCollision_Bullets_Enemies();
 }
 
-void GameInit(HWND hWnd, WPARAM wParam, LPARAM lParam)
+void GameRender(SDL_Renderer* renderer)
 {
-    InitLogSystem(hWnd);
-    InitResourceSystem(hWnd, wParam, lParam);
-
-    // Start from StartScene.
-    ChangeScene(SceneId::StartScene);
-}
-
-void GameLoop(HWND hWnd)
-{
-    UpdateTime();
-
-    SceneLoop(GetDeltaTime());
-
-    // Trigger WM_PAINT.
-    RECT rect = {0, 0, WINDOW_WIDTH, WINDOW_HEIGHT};
-    InvalidateRect(hWnd, &rect, FALSE);
-}
-
-void GameRender(HWND hWnd, WPARAM wParam, LPARAM lParam)
-{
-    PAINTSTRUCT ps = {};
-    HDC hdcWindow = BeginPaint(hWnd, &ps);
-    if (!hdcWindow)
+    if (!renderer)
         return;
 
-    HDC hdcMem = CreateCompatibleDC(hdcWindow);
-    HDC hdcLoad = CreateCompatibleDC(hdcWindow);
-    HBITMAP backBuffer = CreateCompatibleBitmap(hdcWindow, WINDOW_WIDTH, WINDOW_HEIGHT);
+    SDL_SetRenderDrawColor(renderer, COLOR_WHITE.r, COLOR_WHITE.g, COLOR_WHITE.b, 255);
+    SDL_RenderClear(renderer);
 
-    HGDIOBJ oldMemBmp = SelectObject(hdcMem, backBuffer);
+    RenderPlayer(renderer);
+    RenderEnemies(renderer);
+    RenderBullets(renderer);
+}
 
-    // Clear background.
-    RECT full = {0, 0, WINDOW_WIDTH, WINDOW_HEIGHT};
-    HBRUSH brush = CreateSolidBrush(COLOR_WHITE);
-    FillRect(hdcMem, &full, brush);
-    DeleteObject(brush);
-
-    RenderScene(hdcMem, hdcLoad);
-
-    BitBlt(hdcWindow, 0, 0, WINDOW_WIDTH, WINDOW_HEIGHT, hdcMem, 0, 0, SRCCOPY);
-
-    // Cleanup.
-    SelectObject(hdcMem, oldMemBmp);
-    DeleteObject(backBuffer);
-    DeleteDC(hdcLoad);
-    DeleteDC(hdcMem);
-    EndPaint(hWnd, &ps);
+void GameShutdown()
+{
+    DestroyPlayer();
+    ClearEnemies();
+    ClearBullets();
 }
