@@ -31,7 +31,6 @@ jobs:
       - name: Install dependencies (Windows)
         if: matrix.name == 'windows'
         run: |
-          choco install -y ninja
           vcpkg install sdl2 --triplet x64-windows
           echo "VCPKG_ROOT=$env:VCPKG_INSTALLATION_ROOT" | Out-File -FilePath $env:GITHUB_ENV -Append
 
@@ -45,11 +44,14 @@ jobs:
 
       - name: Configure (Windows)
         if: matrix.name == 'windows'
-        run: cmake -S . -B build -G Ninja -DCMAKE_TOOLCHAIN_FILE="$env:VCPKG_ROOT\\scripts\\buildsystems\\vcpkg.cmake"
+        shell: pwsh
+        run: |
+          Write-Host "VCPKG_ROOT=$env:VCPKG_ROOT"
+          cmake -S . -B build -G "Visual Studio 17 2022" -A x64 -DCMAKE_TOOLCHAIN_FILE="$env:VCPKG_ROOT\\scripts\\buildsystems\\vcpkg.cmake"
 
       - name: Build (Windows)
         if: matrix.name == 'windows'
-        run: cmake --build build
+        run: cmake --build build --config Release
 
       - name: Package (Linux)
         if: matrix.name == 'linux'
@@ -62,7 +64,7 @@ jobs:
         if: matrix.name == 'windows'
         run: |
           mkdir dist
-          copy build\AirCombat.exe dist\AirCombat.exe
+          copy build\Release\AirCombat.exe dist\AirCombat.exe
           copy $env:VCPKG_ROOT\installed\x64-windows\bin\SDL2.dll dist\SDL2.dll
           powershell -Command "Compress-Archive -Path dist\* -DestinationPath ${{ matrix.artifact }}.zip"
 
