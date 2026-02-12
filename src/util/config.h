@@ -14,8 +14,8 @@
 // ===== 游戏对象大小 =====
 #define PLAYER_WIDTH 80         // 玩家飞机宽度
 #define PLAYER_HEIGHT 120       // 玩家飞机高度
-#define ENEMY_WIDTH 80          // 敌机宽度
-#define ENEMY_HEIGHT 80         // 敌机高度
+#define ENEMY_WIDTH 60          // 敌机宽度
+#define ENEMY_HEIGHT 60         // 敌机高度
 #define BULLET_RADIUS 5         // 子弹半径
 
 // ===== 玩家参数 =====
@@ -31,7 +31,7 @@
 #define ENEMY_SPEED 200.0       // 敌机下落速度（像素/秒）
 #define ENEMY_SPAWN_INTERVAL 1.0  // 敌机生成间隔（秒），值越小敌人越多
 #define ENEMY_HEALTH 1          // 敌机生命值
-#define ENEMY_SCORE 10          // 击杀敌机获得的分数
+#define ENEMY_SCORE (ENEMY_HEALTH * 10)          // 击杀敌机获得的分数
 
 // ===== 帧率配置 =====
 #define TARGET_FPS 60           // 目标帧率

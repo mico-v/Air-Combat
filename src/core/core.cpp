@@ -3,10 +3,12 @@
 #include "../game_object/player.h"
 #include "../game_object/enemy.h"
 #include "../game_object/bullet.h"
+#include "../ui/hud.h"
 #include "../util/config.h"
 #include "../util/util.h"
 
 #include <SDL.h>
+#include <cstddef>
 
 namespace
 {
@@ -107,6 +109,7 @@ namespace
 // 游戏初始化
 void GameInit()
 {
+    HudInit();
     ResetGame();
 }
 
@@ -137,6 +140,10 @@ void GameRender(SDL_Renderer* renderer)
     RenderPlayer(renderer);
     RenderEnemies(renderer);
     RenderBullets(renderer);
+
+    Player* player = GetPlayer();
+    if (player)
+        HudRender(renderer, player->attributes.score);
 }
 
 // 游戏清理
@@ -145,4 +152,5 @@ void GameShutdown()
     DestroyPlayer();
     ClearEnemies();
     ClearBullets();
+    HudShutdown();
 }
