@@ -19,13 +19,26 @@ void HudInit()
         return;
     }
 
-    // 使用项目 resource 目录里的字体
-    const char* fontPath = "resource/simhei.ttf";
-    g_hudFont = TTF_OpenFont(fontPath, 24);
-    if (!g_hudFont) {
-        SDL_Log("HudInit: Failed to load font from %s - %s", fontPath, TTF_GetError());
-        return;
+    char* basePath = SDL_GetBasePath();
+    std::string base = basePath ? std::string(basePath) : std::string();
+    if (basePath)
+        SDL_free(basePath);
+
+    std::string pathA = base + "resource/simhei.ttf";
+    std::string pathB = base + "../resource/simhei.ttf";
+    const char* candidates[] = {
+        pathA.c_str(),
+        pathB.c_str(),
+        "resource/simhei.ttf"
+    };
+
+    for (const char* path : candidates) {
+        g_hudFont = TTF_OpenFont(path, 24);
+        if (g_hudFont)
+            return;
     }
+
+    SDL_Log("HudInit: Failed to load font from resource paths - %s", TTF_GetError());
 }
 
 void HudShutdown()

@@ -68,15 +68,23 @@ jobs:
         run: |
           mkdir -p dist
           cp build/AirCombat dist/
-          tar -czf ${{ matrix.artifact }}.tar.gz -C dist AirCombat
+          cp -r resource dist/
+          tar -czf ${{ matrix.artifact }}.tar.gz -C dist AirCombat resource
 
       - name: Package (Windows)
         if: matrix.name == 'windows'
         run: |
           mkdir dist
           copy build\Release\AirCombat.exe dist\AirCombat.exe
+          xcopy /E /I resource dist\resource
           copy $env:VCPKG_ROOT\installed\x64-windows\bin\SDL2.dll dist\SDL2.dll
           copy $env:VCPKG_ROOT\installed\x64-windows\bin\SDL2_ttf.dll dist\SDL2_ttf.dll
+          if (Test-Path "$env:VCPKG_ROOT\installed\x64-windows\bin\freetype.dll") { Copy-Item "$env:VCPKG_ROOT\installed\x64-windows\bin\freetype.dll" dist\freetype.dll }
+          if (Test-Path "$env:VCPKG_ROOT\installed\x64-windows\bin\zlib1.dll") { Copy-Item "$env:VCPKG_ROOT\installed\x64-windows\bin\zlib1.dll" dist\zlib1.dll }
+          if (Test-Path "$env:VCPKG_ROOT\installed\x64-windows\bin\libpng16.dll") { Copy-Item "$env:VCPKG_ROOT\installed\x64-windows\bin\libpng16.dll" dist\libpng16.dll }
+          if (Test-Path "$env:VCPKG_ROOT\installed\x64-windows\bin\brotlicommon.dll") { Copy-Item "$env:VCPKG_ROOT\installed\x64-windows\bin\brotlicommon.dll" dist\brotlicommon.dll }
+          if (Test-Path "$env:VCPKG_ROOT\installed\x64-windows\bin\brotlidec.dll") { Copy-Item "$env:VCPKG_ROOT\installed\x64-windows\bin\brotlidec.dll" dist\brotlidec.dll }
+          if (Test-Path "$env:VCPKG_ROOT\installed\x64-windows\bin\bz2.dll") { Copy-Item "$env:VCPKG_ROOT\installed\x64-windows\bin\bz2.dll" dist\bz2.dll }
           powershell -Command "Compress-Archive -Path dist\* -DestinationPath ${{ matrix.artifact }}.zip"
 
       - name: Upload artifact
