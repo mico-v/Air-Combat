@@ -6,7 +6,18 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 find_package(SDL2 REQUIRED)
-find_package(SDL2_ttf REQUIRED)
+
+# Find SDL2_ttf - try CONFIG first, then pkg-config (Linux fallback)
+find_package(SDL2_ttf CONFIG QUIET)
+if(NOT SDL2_ttf_FOUND)
+    find_package(PkgConfig QUIET)
+    if(PkgConfig_FOUND)
+        pkg_check_modules(SDL2_TTF REQUIRED IMPORTED_TARGET sdl2-ttf)
+        add_library(SDL2_ttf::SDL2_ttf ALIAS PkgConfig::SDL2_TTF)
+    else()
+        message(FATAL_ERROR "SDL2_ttf not found and pkg-config not available")
+    endif()
+endif()
 
 add_executable(AirCombat
     src/main.cpp
